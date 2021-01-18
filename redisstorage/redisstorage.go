@@ -11,6 +11,7 @@ import (
 	"github.com/go-tk/versionedkv-redis/redisstorage/internal"
 )
 
+// Options represents options for redis storages.
 type Options struct {
 	Prefix                       string
 	NumberOfShards               int
@@ -27,6 +28,7 @@ func (o *Options) sanitize() {
 	}
 }
 
+// New creates a new redis storage with the given options.
 func New(client redis.UniversalClient, options Options) versionedkv.Storage {
 	var rs redisStorage
 	rs.client = client

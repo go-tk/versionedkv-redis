@@ -116,7 +116,7 @@ func (eb *EventBus) removeWatchers(channelName string) (map[*watcher]struct{}, e
 	if len(eb.subscriptions) == 0 {
 		eb.subscriptions = nil
 	}
-	eb.idleSubscriptionCount -= 1
+	eb.idleSubscriptionCount--
 	eb.works <- func() { eb.pubSub.Unsubscribe(context.Background(), channelName) }
 	return nil, nil
 }
