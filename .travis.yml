@@ -15,7 +15,7 @@ before_script:
 
 script:
   - make all GO_TEST_FLAGS='-race -coverprofile=coverage.txt'
-  - make test GO_TEST_FLAGS='-tags integration_test' USE_DOCKER=1 COMPOSE_FILE=docker-compose.override.yml
+  - make test GO_TEST_FLAGS='-tags integration_test -count 1' USE_DOCKER=1 COMPOSE_FILE=docker-compose.override.yml
   - git diff --exit-code
 
 after_success:

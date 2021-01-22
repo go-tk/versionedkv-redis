@@ -16,14 +16,10 @@ github.com/fsnotify/fsnotify v1.4.9 h1:hsms1Qyu0jgnwNXIxa+/V/PDsU6CfLf6CNO8H7IWo
 github.com/fsnotify/fsnotify v1.4.9/go.mod h1:znqG4EE+3YCdAaPaxE2ZRY/06pZUdp0tY4IgpuI1SZQ=
 github.com/go-redis/redis/v8 v8.4.8 h1:sEG4g6Jq4hvQzbrNsVDNTDdxFCUnFC0jxuOp6tgALlA=
 github.com/go-redis/redis/v8 v8.4.8/go.mod h1:/cTZsrSn1DPqRuOnSDuyH2OSvd9iX0iUGT0s7hYGIAg=
-github.com/go-tk/testcase v0.1.1 h1:l1KDPmTPmjpNRLs9EVIA8gT4kPwA8cF2sDFqgAW7Ajg=
-github.com/go-tk/testcase v0.1.1/go.mod h1:70s7MsM3r38BYfzntn8spYX2EvYBdoJkBUY/lVCjZz8=
-github.com/go-tk/testcase v0.2.0 h1:U2wRwrW/nq+8ZKD/U9mI8m37M0f8R7mjdVqUtbY9YsQ=
-github.com/go-tk/testcase v0.2.0/go.mod h1:70s7MsM3r38BYfzntn8spYX2EvYBdoJkBUY/lVCjZz8=
+github.com/go-tk/backoff v0.2.7 h1:FWjAGGupgt7Do7GvtnTsxmdB5wwNZoPi2koUb3mtIuw=
+github.com/go-tk/backoff v0.2.7/go.mod h1:ixVHQR0MkWHQ3TMqt7ST6a4ej279teSZDVtzKotehXk=
 github.com/go-tk/testcase v0.3.0 h1:0X+gbarmrcuPnFMxHj/AD5ZZAZOoeUWU0ygLpCIx/Gk=
 github.com/go-tk/testcase v0.3.0/go.mod h1:70s7MsM3r38BYfzntn8spYX2EvYBdoJkBUY/lVCjZz8=
-github.com/go-tk/versionedkv v0.1.7 h1:7jAF34esGbcfbv7saJYqFqovOAAFlkScaYLJ9aUU4ZA=
-github.com/go-tk/versionedkv v0.1.7/go.mod h1:BT83R2vFMFDgXLJjWTVsB+xjw9CHbs0SotNc0RvSiLY=
 github.com/go-tk/versionedkv v0.1.8 h1:g+v3acUoKz2z7H2jmFjQePMV6VZl5i6YGMNvucNvGNo=
 github.com/go-tk/versionedkv v0.1.8/go.mod h1:K7+gCyN5LYXKrcQDSgEeps9FxD3KrtnDJm4jQnc4EGg=
 github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
