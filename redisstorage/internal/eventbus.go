@@ -18,7 +18,7 @@ type EventBus struct {
 	subscriptions         map[string]*subscription
 	works                 chan func()
 	idleSubscriptionCount int
-	isClosed1             int32
+	isClosed              int32
 }
 
 type EventBusOptions struct {
@@ -188,7 +188,7 @@ func (eb *EventBus) RemoveWatcher(eventName string, wrappedWatcher Watcher) erro
 }
 
 func (eb *EventBus) Close() error {
-	if atomic.SwapInt32(&eb.isClosed1, 1) != 0 {
+	if atomic.SwapInt32(&eb.isClosed, 1) != 0 {
 		return ErrEventBusClosed
 	}
 	err := eb.pubSub.Close()
@@ -201,7 +201,7 @@ func (eb *EventBus) Close() error {
 func (eb *EventBus) ChannelNamePrefix() string { return eb.options.ChannelNamePrefix }
 
 func (eb *EventBus) IsClosed() bool {
-	return atomic.LoadInt32(&eb.isClosed1) != 0
+	return atomic.LoadInt32(&eb.isClosed) != 0
 }
 
 func (eb *EventBus) eventNameToChannelName(eventName string) string {
