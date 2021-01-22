@@ -65,7 +65,7 @@ func TestEventBus_AddWatcher(t *testing.T) {
 		}
 		c.RC.Close()
 	})
-	testcase.RunListParallel(t, []testcase.TestCase{
+	testcase.RunListParallel(t,
 		tc.Copy().
 			Given("bus closed").
 			Then("should fail with error ErrEventBusClosed").
@@ -104,7 +104,7 @@ func TestEventBus_AddWatcher(t *testing.T) {
 					},
 				}
 			}),
-	})
+	)
 }
 
 func TestEventBus_RemoveWatcher(t *testing.T) {
@@ -165,7 +165,7 @@ func TestEventBus_RemoveWatcher(t *testing.T) {
 		}
 		c.RC.Close()
 	})
-	testcase.RunListParallel(t, []testcase.TestCase{
+	testcase.RunListParallel(t,
 		tc.Copy().
 			Given("bus closed").
 			Then("should fail with error ErrEventBusClosed").
@@ -278,7 +278,7 @@ func TestEventBus_RemoveWatcher(t *testing.T) {
 				c.ExpectedState.NumberOfIdleSubscriptions = 1
 			}),
 		tc.Copy().
-			When("number of idle subscriptions is to reach option MaxNumberOfIdleSubscriptions" +
+			When("number of idle subscriptions is to reach option MaxNumberOfIdleSubscriptions"+
 				" and have no idle subscription expired").
 			Then("should delete a idle subscription randomly").
 			PreSetup(func(t *testing.T, c *Context) {
@@ -329,7 +329,7 @@ func TestEventBus_RemoveWatcher(t *testing.T) {
 					},
 				}
 			}),
-	})
+	)
 }
 
 func TestEventBus_Close(t *testing.T) {
@@ -398,7 +398,7 @@ func TestEventBus_handleMessages(t *testing.T) {
 		assert.NoError(t, err)
 		c.RC.Close()
 	})
-	testcase.RunListParallel(t, []testcase.TestCase{
+	testcase.RunListParallel(t,
 		tc.Copy().
 			When("fire event").
 			Then("should remove watchers and return corresponding event args").
@@ -416,10 +416,18 @@ func TestEventBus_handleMessages(t *testing.T) {
 					cmd := c.RC.Publish(context.Background(), c.EB.ChannelNamePrefix()+"foo", "bar")
 					assert.NoError(t, cmd.Err())
 				})
-				<-w1.Event()
+				select {
+				case <-w1.Event():
+				case <-time.After(10 * time.Second):
+					t.Fatal("timed out")
+				}
 				ea1 := w1.EventArgs()
 				assert.Equal(t, EventArgs{Message: "bar"}, ea1)
-				<-w2.Event()
+				select {
+				case <-w2.Event():
+				case <-time.After(10 * time.Second):
+					t.Fatal("timed out")
+				}
 				ea2 := w2.EventArgs()
 				assert.Equal(t, EventArgs{Message: "bar"}, ea2)
 				c.ExpectedState.Subscriptions = map[string]SubscriptionDetails{
@@ -459,7 +467,11 @@ func TestEventBus_handleMessages(t *testing.T) {
 				if !assert.NoError(t, err) {
 					t.FailNow()
 				}
-				<-w.Event()
+				select {
+				case <-w.Event():
+				case <-time.After(10 * time.Second):
+					t.Fatal("timed out")
+				}
 				c.ExpectedState.Subscriptions = map[string]SubscriptionDetails{
 					"test:kkk": {
 						NumberOfWatchers: 1,
@@ -471,7 +483,7 @@ func TestEventBus_handleMessages(t *testing.T) {
 				c.ExpectedState.NumberOfIdleSubscriptions = 1
 			}),
 		tc.Copy().
-			When("fire event, number of idle subscriptions is to reach option MaxNumberOfIdleSubscriptions" +
+			When("fire event, number of idle subscriptions is to reach option MaxNumberOfIdleSubscriptions"+
 				" and have no idle subscription expired").
 			Then("should delete a idle subscription randomly").
 			PreSetup(func(t *testing.T, c *Context) {
@@ -489,7 +501,11 @@ func TestEventBus_handleMessages(t *testing.T) {
 				if !assert.NoError(t, err) {
 					t.FailNow()
 				}
-				<-w.Event()
+				select {
+				case <-w.Event():
+				case <-time.After(10 * time.Second):
+					t.Fatal("timed out")
+				}
 				c.ExpectedStates = []State{
 					{
 						Subscriptions: map[string]SubscriptionDetails{
@@ -521,7 +537,7 @@ func TestEventBus_handleMessages(t *testing.T) {
 					},
 				}
 			}),
-	})
+	)
 }
 
 type redisClient struct {
@@ -554,7 +570,11 @@ func createIdleSubscription(t *testing.T, eb *EventBus, eventName string) {
 	if !assert.NoError(t, err) {
 		t.FailNow()
 	}
-	<-w.Event()
+	select {
+	case <-w.Event():
+	case <-time.After(10 * time.Second):
+		t.Fatal("timed out")
+	}
 	ea := w.EventArgs()
 	assert.True(t, ea.WatchLoss)
 }

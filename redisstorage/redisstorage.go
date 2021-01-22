@@ -384,9 +384,7 @@ func (rs *redisStorage) Close() error {
 
 func (rs *redisStorage) Inspect(ctx context.Context) (versionedkv.StorageDetails, error) {
 	if rs.eventBus.IsClosed() {
-		return versionedkv.StorageDetails{
-			IsClosed: true,
-		}, nil
+		return versionedkv.StorageDetails{IsClosed: true}, nil
 	}
 	var valueDetails map[string]versionedkv.ValueDetails
 	for shardIndex := 0; shardIndex < rs.options.NumberOfShards; shardIndex++ {

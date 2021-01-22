@@ -20,9 +20,7 @@ func (eb *EventBus) Inspect() EventBusDetails {
 	eb.mu.Lock()
 	defer eb.mu.Unlock()
 	if eb.IsClosed() {
-		return EventBusDetails{
-			IsClosed: true,
-		}
+		return EventBusDetails{IsClosed: true}
 	}
 	var details EventBusDetails
 	if eb.subscriptions != nil {
