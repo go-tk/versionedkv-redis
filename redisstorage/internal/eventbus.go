@@ -64,38 +64,38 @@ func (eb *EventBus) handleMessages() {
 		}
 		switch message := message.(type) {
 		case *redis.Message:
-			watchers, err := eb.removeWatchers(message.Channel)
-			if err != nil {
-				if err != ErrEventBusClosed {
-					panic("unreachable")
-				}
-				return
-			}
 			var eventArgs EventArgs
 			if n := len(message.PayloadSlice); n == 0 {
 				eventArgs.Message = message.Payload
 			} else {
 				eventArgs.Message = message.PayloadSlice[n-1]
 			}
-			for watcher := range watchers {
-				watcher.FireEvent(eventArgs)
-			}
-		case *redis.Subscription:
-			watchers, err := eb.removeWatchers(message.Channel)
-			if err != nil {
+			if err := eb.fireEvent(message.Channel, eventArgs); err != nil {
 				if err != ErrEventBusClosed {
 					panic("unreachable")
 				}
 				return
 			}
-			eventArgs := EventArgs{
-				WatchLoss: true,
-			}
-			for watcher := range watchers {
-				watcher.FireEvent(eventArgs)
+		case *redis.Subscription:
+			if err := eb.fireEvent(message.Channel, EventArgs{WatchLoss: true}); err != nil {
+				if err != ErrEventBusClosed {
+					panic("unreachable")
+				}
+				return
 			}
 		}
 	}
+}
+
+func (eb *EventBus) fireEvent(channelName string, eventArgs EventArgs) error {
+	watchers, err := eb.removeWatchers(channelName)
+	if err != nil {
+		return err
+	}
+	for watcher := range watchers {
+		watcher.FireEvent(eventArgs)
+	}
+	return nil
 }
 
 func (eb *EventBus) removeWatchers(channelName string) (map[*watcher]struct{}, error) {
