@@ -97,17 +97,18 @@ local key = ARGV[1]
 local oldVersion = tonumber(ARGV[2])
 local newVersionStr = redis.call("HGET", versionsKey, key)
 if newVersionStr == false then
-	return {"", 0}
+	local status = oldVersion == 0 and 0 or 1
+	return {"", 0, status}
 end
 local newVersion = tonumber(newVersionStr)
-if oldVersion ~= 0 and newVersion == oldVersion then
-	return {"", 0}
+if newVersion == oldVersion then
+	return {"", 0, 0}
 end
 local value = redis.call("HGET", valuesKey, key)
 if value == false then
 	value = ""
 end
-return {value, newVersion}`
+return {value, newVersion, 1}`
 	shardIndex := rs.locateShard(key)
 	hashTag := rs.hashTag(shardIndex)
 	valuesKey := rs.valuesKey(hashTag)
@@ -121,6 +122,7 @@ return {value, newVersion}`
 		oldVersion,
 	}
 	for {
+		var retry bool
 		value, newVersion, err := func() (string, int64, error) {
 			watcher, err := rs.eventBus.AddWatcher(key)
 			if err != nil {
@@ -139,11 +141,14 @@ return {value, newVersion}`
 				return "", 0, err
 			}
 			results := result.([]interface{})
-			newVersion := results[1].(int64)
-			if newVersion == 0 {
+			ok := results[2].(int64) == 1
+			retry = !ok
+			if retry {
 				select {
 				case <-watcher.Event():
+					eventArgs := watcher.EventArgs()
 					watcher = internal.Watcher{}
+					retry = eventArgs.WatchLoss || eventArgs.Message == "1"
 					return "", 0, nil
 				case <-rs.closure:
 					watcher = internal.Watcher{}
@@ -153,12 +158,13 @@ return {value, newVersion}`
 				}
 			}
 			value := results[0].(string)
+			newVersion := results[1].(int64)
 			return value, newVersion, nil
 		}()
 		if err != nil {
 			return "", 0, err
 		}
-		if newVersion == 0 {
+		if retry {
 			continue
 		}
 		return value, newVersion, nil
@@ -188,7 +194,7 @@ end
 redis.call("HSET", valuesKey, key, value)
 local version = redis.call("INCR", versionHighKey) * numberOfShards + shardIndex
 redis.call("HSET", versionsKey, key, tostring(version))
-redis.call("PUBLISH", channelNamePrefix .. key, "")
+redis.call("PUBLISH", channelNamePrefix .. key, "1")
 return version`
 	shardIndex := rs.locateShard(key)
 	hashTag := rs.hashTag(shardIndex)
@@ -233,17 +239,17 @@ local oldVersion = tonumber(ARGV[3])
 local shardIndex = tonumber(ARGV[4])
 local numberOfShards = tonumber(ARGV[5])
 local channelNamePrefix = ARGV[6]
-local oldVersionStr = redis.call("HGET", versionsKey, key)
-if oldVersionStr == false then
+local versionStr = redis.call("HGET", versionsKey, key)
+if versionStr == false then
 	return 0
 end
-if oldVersion ~= 0 and tonumber(oldVersionStr) ~= oldVersion then
+if oldVersion ~= 0 and tonumber(versionStr) ~= oldVersion then
 	return 0
 end
 redis.call("HSET", valuesKey, key, value)
 local newVersion = redis.call("INCR", versionHighKey) * numberOfShards + shardIndex
 redis.call("HSET", versionsKey, key, tostring(newVersion))
-redis.call("PUBLISH", channelNamePrefix .. key, "")
+redis.call("PUBLISH", channelNamePrefix .. key, "1")
 return newVersion`
 	shardIndex := rs.locateShard(key)
 	hashTag := rs.hashTag(shardIndex)
@@ -289,21 +295,21 @@ local oldVersion = tonumber(ARGV[3])
 local shardIndex = tonumber(ARGV[4])
 local numberOfShards = tonumber(ARGV[5])
 local channelNamePrefix = ARGV[6]
-local oldVersionStr = redis.call("HGET", versionsKey, key)
-if oldVersionStr == false then
+local versionStr = redis.call("HGET", versionsKey, key)
+if versionStr == false then
 	redis.call("HSET", valuesKey, key, value)
 	local version = redis.call("INCR", versionHighKey) * numberOfShards + shardIndex
 	redis.call("HSET", versionsKey, key, tostring(version))
-	redis.call("PUBLISH", channelNamePrefix .. key, "")
+	redis.call("PUBLISH", channelNamePrefix .. key, "1")
 	return version
 end
-if oldVersion ~= 0 and tonumber(oldVersionStr) ~= oldVersion then
+if oldVersion ~= 0 and tonumber(versionStr) ~= oldVersion then
 	return 0
 end
 redis.call("HSET", valuesKey, key, value)
 local newVersion = redis.call("INCR", versionHighKey) * numberOfShards + shardIndex
 redis.call("HSET", versionsKey, key, tostring(newVersion))
-redis.call("PUBLISH", channelNamePrefix .. key, "")
+redis.call("PUBLISH", channelNamePrefix .. key, "1")
 return newVersion`
 	shardIndex := rs.locateShard(key)
 	hashTag := rs.hashTag(shardIndex)
@@ -343,6 +349,7 @@ func (rs *redisStorage) doDeleteValue(ctx context.Context, key string, version i
 local versionsKey = KEYS[2]
 local key = ARGV[1]
 local version = tonumber(ARGV[2])
+local channelNamePrefix = ARGV[3]
 local versionStr = redis.call("HGET", versionsKey, key)
 if versionStr == false then
 	return 0
@@ -352,6 +359,7 @@ if version ~= 0 and tonumber(versionStr) ~= version then
 end
 redis.call("HDEL", valuesKey, key)
 redis.call("HDEL", versionsKey, key)
+redis.call("PUBLISH", channelNamePrefix .. key, "0")
 return 1`
 	shardIndex := rs.locateShard(key)
 	hashTag := rs.hashTag(shardIndex)
@@ -364,6 +372,7 @@ return 1`
 	scriptArgv := []interface{}{
 		key,
 		version,
+		rs.eventBus.ChannelNamePrefix(),
 	}
 	result, err := rs.client.Eval(ctx, script, scriptKeys, scriptArgv...).Result()
 	if err != nil {
