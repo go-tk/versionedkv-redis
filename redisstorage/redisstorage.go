@@ -146,9 +146,7 @@ return {value, newVersion, 1}`
 			if retry {
 				select {
 				case <-watcher.Event():
-					eventArgs := watcher.EventArgs()
 					watcher = internal.Watcher{}
-					retry = eventArgs.WatchLoss || eventArgs.Message == "1"
 					return "", 0, nil
 				case <-rs.closure:
 					watcher = internal.Watcher{}
@@ -194,7 +192,7 @@ end
 redis.call("HSET", valuesKey, key, value)
 local version = redis.call("INCR", versionHighKey) * numberOfShards + shardIndex
 redis.call("HSET", versionsKey, key, tostring(version))
-redis.call("PUBLISH", channelNamePrefix .. key, "1")
+redis.call("PUBLISH", channelNamePrefix .. key, "")
 return version`
 	shardIndex := rs.locateShard(key)
 	hashTag := rs.hashTag(shardIndex)
@@ -249,7 +247,7 @@ end
 redis.call("HSET", valuesKey, key, value)
 local newVersion = redis.call("INCR", versionHighKey) * numberOfShards + shardIndex
 redis.call("HSET", versionsKey, key, tostring(newVersion))
-redis.call("PUBLISH", channelNamePrefix .. key, "1")
+redis.call("PUBLISH", channelNamePrefix .. key, "")
 return newVersion`
 	shardIndex := rs.locateShard(key)
 	hashTag := rs.hashTag(shardIndex)
@@ -300,7 +298,7 @@ if versionStr == false then
 	redis.call("HSET", valuesKey, key, value)
 	local version = redis.call("INCR", versionHighKey) * numberOfShards + shardIndex
 	redis.call("HSET", versionsKey, key, tostring(version))
-	redis.call("PUBLISH", channelNamePrefix .. key, "1")
+	redis.call("PUBLISH", channelNamePrefix .. key, "")
 	return version
 end
 if oldVersion ~= 0 and tonumber(versionStr) ~= oldVersion then
@@ -309,7 +307,7 @@ end
 redis.call("HSET", valuesKey, key, value)
 local newVersion = redis.call("INCR", versionHighKey) * numberOfShards + shardIndex
 redis.call("HSET", versionsKey, key, tostring(newVersion))
-redis.call("PUBLISH", channelNamePrefix .. key, "1")
+redis.call("PUBLISH", channelNamePrefix .. key, "")
 return newVersion`
 	shardIndex := rs.locateShard(key)
 	hashTag := rs.hashTag(shardIndex)
@@ -359,7 +357,7 @@ if version ~= 0 and tonumber(versionStr) ~= version then
 end
 redis.call("HDEL", valuesKey, key)
 redis.call("HDEL", versionsKey, key)
-redis.call("PUBLISH", channelNamePrefix .. key, "0")
+redis.call("PUBLISH", channelNamePrefix .. key, "")
 return 1`
 	shardIndex := rs.locateShard(key)
 	hashTag := rs.hashTag(shardIndex)
