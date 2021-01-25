@@ -96,13 +96,12 @@ local versionsKey = KEYS[2]
 local key = ARGV[1]
 local oldVersion = tonumber(ARGV[2])
 local newVersionStr = redis.call("HGET", versionsKey, key)
-if newVersionStr == false then
-	local status = oldVersion == 0 and 0 or 1
-	return {"", 0, status}
-end
-local newVersion = tonumber(newVersionStr)
+local newVersion = newVersionStr == false and 0 or tonumber(newVersionStr)
 if newVersion == oldVersion then
 	return {"", 0, 0}
+end
+if newVersionStr == false then
+	return {"", 0, 1}
 end
 local value = redis.call("HGET", valuesKey, key)
 if value == false then
