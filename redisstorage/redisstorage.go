@@ -1,3 +1,4 @@
+// Package redisstorage provides the implementation of versionedkv based on redis.
 package redisstorage
 
 import (
