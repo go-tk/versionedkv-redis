@@ -7,6 +7,6 @@ require (
 	github.com/go-redis/redis/v8 v8.4.8
 	github.com/go-tk/backoff v0.2.7
 	github.com/go-tk/testcase v0.3.0
-	github.com/go-tk/versionedkv v0.2.4
+	github.com/go-tk/versionedkv v0.2.5
 	github.com/stretchr/testify v1.7.0
 )
