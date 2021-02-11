@@ -14,15 +14,15 @@ import (
 
 // Options represents options for redis storages.
 type Options struct {
-	Prefix                       string
+	KeyPrefix                    string
 	NumberOfShards               int
 	MaxNumberOfIdleSubscriptions int
 	IdleSubscriptionTimeout      time.Duration
 }
 
 func (o *Options) sanitize() {
-	if o.Prefix == "" {
-		o.Prefix = "versionedkv:"
+	if o.KeyPrefix == "" {
+		o.KeyPrefix = "versionedkv-"
 	}
 	if o.NumberOfShards < 1 {
 		o.NumberOfShards = 10
@@ -37,7 +37,7 @@ func New(client redis.UniversalClient, options Options) versionedkv.Storage {
 	rs.options.sanitize()
 	pubSub := client.Subscribe(context.Background())
 	eventBusOptions := internal.EventBusOptions{
-		ChannelNamePrefix:            rs.options.Prefix + "event:",
+		ChannelNamePrefix:            rs.options.KeyPrefix,
 		MaxNumberOfIdleSubscriptions: rs.options.MaxNumberOfIdleSubscriptions,
 		IdleSubscriptionTimeout:      rs.options.IdleSubscriptionTimeout,
 	}
@@ -450,15 +450,15 @@ func (rs *redisStorage) hashTag(shardIndex int) string {
 }
 
 func (rs *redisStorage) valuesKey(hashTag string) string {
-	return rs.options.Prefix + "values:{" + hashTag + "}"
+	return rs.options.KeyPrefix + "{" + hashTag + "}:values"
 }
 
 func (rs *redisStorage) versionsKey(hashTag string) string {
-	return rs.options.Prefix + "versions:{" + hashTag + "}"
+	return rs.options.KeyPrefix + "{" + hashTag + "}:versions"
 }
 
 func (rs *redisStorage) versionHighKey(hashTag string) string {
-	return rs.options.Prefix + "versionhigh:{" + hashTag + "}"
+	return rs.options.KeyPrefix + "{" + hashTag + "}:versionhigh"
 }
 
 func version2OpaqueVersion(version int64) versionedkv.Version {

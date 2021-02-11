@@ -37,7 +37,7 @@ func TestEventBus_AddWatcher(t *testing.T) {
 		return &Context{
 			Init: Init{
 				Options: EventBusOptions{
-					ChannelNamePrefix:            "test:",
+					ChannelNamePrefix:            "test-",
 					MaxNumberOfIdleSubscriptions: 100,
 					IdleSubscriptionTimeout:      100 * time.Second,
 				},
@@ -84,7 +84,7 @@ func TestEventBus_AddWatcher(t *testing.T) {
 				createIdleSubscription(t, &c.EB, "foo")
 				c.Input.EventName = "foo"
 				c.ExpectedState.Subscriptions = map[string]SubscriptionDetails{
-					"test:foo": {
+					"test-foo": {
 						NumberOfWatchers: 1,
 					},
 				}
@@ -99,7 +99,7 @@ func TestEventBus_AddWatcher(t *testing.T) {
 				}
 				c.Input.EventName = "foo"
 				c.ExpectedState.Subscriptions = map[string]SubscriptionDetails{
-					"test:foo": {
+					"test-foo": {
 						NumberOfWatchers: 2,
 					},
 				}
@@ -133,7 +133,7 @@ func TestEventBus_RemoveWatcher(t *testing.T) {
 		return &Context{
 			Init: Init{
 				Options: EventBusOptions{
-					ChannelNamePrefix:            "test:",
+					ChannelNamePrefix:            "test-",
 					MaxNumberOfIdleSubscriptions: 100,
 					IdleSubscriptionTimeout:      100 * time.Second,
 				},
@@ -190,7 +190,7 @@ func TestEventBus_RemoveWatcher(t *testing.T) {
 				c.Input.EventName = "foo"
 				c.Input.Watcher = w
 				c.ExpectedState.Subscriptions = map[string]SubscriptionDetails{
-					"test:foo": {
+					"test-foo": {
 						IsIdle: true,
 					},
 				}
@@ -212,7 +212,7 @@ func TestEventBus_RemoveWatcher(t *testing.T) {
 				c.Input.EventName = "foo"
 				c.Input.Watcher = w
 				c.ExpectedState.Subscriptions = map[string]SubscriptionDetails{
-					"test:foo": {
+					"test-foo": {
 						NumberOfWatchers: 1,
 					},
 				}
@@ -238,7 +238,7 @@ func TestEventBus_RemoveWatcher(t *testing.T) {
 				c.Input.EventName = "foo"
 				c.Input.Watcher = w
 				c.ExpectedState.Subscriptions = map[string]SubscriptionDetails{
-					"test:foo": {
+					"test-foo": {
 						IsIdle: true,
 					},
 				}
@@ -268,10 +268,10 @@ func TestEventBus_RemoveWatcher(t *testing.T) {
 				c.Input.EventName = "foo"
 				c.Input.Watcher = w
 				c.ExpectedState.Subscriptions = map[string]SubscriptionDetails{
-					"test:kkk": {
+					"test-kkk": {
 						NumberOfWatchers: 1,
 					},
-					"test:foo": {
+					"test-foo": {
 						IsIdle: true,
 					},
 				}
@@ -301,13 +301,13 @@ func TestEventBus_RemoveWatcher(t *testing.T) {
 				c.ExpectedStates = []State{
 					{
 						Subscriptions: map[string]SubscriptionDetails{
-							"test:kkk": {
+							"test-kkk": {
 								NumberOfWatchers: 1,
 							},
-							"test:bar": {
+							"test-bar": {
 								IsIdle: true,
 							},
-							"test:baz": {
+							"test-baz": {
 								IsIdle: true,
 							},
 						},
@@ -315,13 +315,13 @@ func TestEventBus_RemoveWatcher(t *testing.T) {
 					},
 					{
 						Subscriptions: map[string]SubscriptionDetails{
-							"test:kkk": {
+							"test-kkk": {
 								NumberOfWatchers: 1,
 							},
-							"test:foo": {
+							"test-foo": {
 								IsIdle: true,
 							},
-							"test:baz": {
+							"test-baz": {
 								IsIdle: true,
 							},
 						},
@@ -373,7 +373,7 @@ func TestEventBus_handleMessages(t *testing.T) {
 		return &Context{
 			Init: Init{
 				Options: EventBusOptions{
-					ChannelNamePrefix:            "test:",
+					ChannelNamePrefix:            "test-",
 					MaxNumberOfIdleSubscriptions: 100,
 					IdleSubscriptionTimeout:      100 * time.Second,
 				},
@@ -431,7 +431,7 @@ func TestEventBus_handleMessages(t *testing.T) {
 				ea2 := w2.EventArgs()
 				assert.Equal(t, EventArgs{Message: "bar"}, ea2)
 				c.ExpectedState.Subscriptions = map[string]SubscriptionDetails{
-					"test:foo": {
+					"test-foo": {
 						IsIdle: true,
 					},
 				}
@@ -473,10 +473,10 @@ func TestEventBus_handleMessages(t *testing.T) {
 					t.Fatal("timed out")
 				}
 				c.ExpectedState.Subscriptions = map[string]SubscriptionDetails{
-					"test:kkk": {
+					"test-kkk": {
 						NumberOfWatchers: 1,
 					},
-					"test:foo": {
+					"test-foo": {
 						IsIdle: true,
 					},
 				}
@@ -509,13 +509,13 @@ func TestEventBus_handleMessages(t *testing.T) {
 				c.ExpectedStates = []State{
 					{
 						Subscriptions: map[string]SubscriptionDetails{
-							"test:kkk": {
+							"test-kkk": {
 								NumberOfWatchers: 1,
 							},
-							"test:bar": {
+							"test-bar": {
 								IsIdle: true,
 							},
-							"test:baz": {
+							"test-baz": {
 								IsIdle: true,
 							},
 						},
@@ -523,13 +523,13 @@ func TestEventBus_handleMessages(t *testing.T) {
 					},
 					{
 						Subscriptions: map[string]SubscriptionDetails{
-							"test:kkk": {
+							"test-kkk": {
 								NumberOfWatchers: 1,
 							},
-							"test:foo": {
+							"test-foo": {
 								IsIdle: true,
 							},
-							"test:baz": {
+							"test-baz": {
 								IsIdle: true,
 							},
 						},

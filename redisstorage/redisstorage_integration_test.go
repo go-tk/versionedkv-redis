@@ -4,8 +4,8 @@ package redisstorage_test
 
 import (
 	"context"
+	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -57,7 +57,7 @@ func makeStorage() (storage, error) {
 	}
 	sid := int(atomic.AddInt32(&lastStorageID, 1))
 	s := New(c, Options{
-		Prefix: "versionedkv" + strconv.Itoa(sid),
+		KeyPrefix: fmt.Sprintf("versionedkv%d-", sid),
 	})
 	return storage{
 		Storage: s,

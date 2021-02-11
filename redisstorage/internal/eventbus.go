@@ -30,7 +30,7 @@ type EventBusOptions struct {
 
 func (ebo *EventBusOptions) sanitize() {
 	if ebo.ChannelNamePrefix == "" {
-		ebo.ChannelNamePrefix = "event:"
+		ebo.ChannelNamePrefix = "event-"
 	}
 	if ebo.MaxNumberOfIdleSubscriptions < 1 {
 		ebo.MaxNumberOfIdleSubscriptions = 100
