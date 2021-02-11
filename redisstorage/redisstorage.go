@@ -191,7 +191,7 @@ if redis.call("HEXISTS", versionsKey, key) == 1 then
 	return 0
 end
 redis.call("HSET", valuesKey, key, value)
-local version = redis.call("INCR", versionHighKey) * numberOfShards + shardIndex
+local version = shardIndex + redis.call("INCR", versionHighKey) * numberOfShards
 redis.call("HSET", versionsKey, key, tostring(version))
 redis.call("PUBLISH", channelNamePrefix .. key, "")
 return version
@@ -249,7 +249,7 @@ if oldVersion ~= 0 and tonumber(versionStr) ~= oldVersion then
 	return 0
 end
 redis.call("HSET", valuesKey, key, value)
-local newVersion = redis.call("INCR", versionHighKey) * numberOfShards + shardIndex
+local newVersion = shardIndex + redis.call("INCR", versionHighKey) * numberOfShards
 redis.call("HSET", versionsKey, key, tostring(newVersion))
 redis.call("PUBLISH", channelNamePrefix .. key, "")
 return newVersion
@@ -303,7 +303,7 @@ local channelNamePrefix = ARGV[6]
 local versionStr = redis.call("HGET", versionsKey, key)
 if versionStr == false then
 	redis.call("HSET", valuesKey, key, value)
-	local version = redis.call("INCR", versionHighKey) * numberOfShards + shardIndex
+	local version = shardIndex + redis.call("INCR", versionHighKey) * numberOfShards
 	redis.call("HSET", versionsKey, key, tostring(version))
 	redis.call("PUBLISH", channelNamePrefix .. key, "")
 	return version
@@ -312,7 +312,7 @@ if oldVersion ~= 0 and tonumber(versionStr) ~= oldVersion then
 	return 0
 end
 redis.call("HSET", valuesKey, key, value)
-local newVersion = redis.call("INCR", versionHighKey) * numberOfShards + shardIndex
+local newVersion = shardIndex + redis.call("INCR", versionHighKey) * numberOfShards
 redis.call("HSET", versionsKey, key, tostring(newVersion))
 redis.call("PUBLISH", channelNamePrefix .. key, "")
 return newVersion

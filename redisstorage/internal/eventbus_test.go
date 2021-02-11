@@ -227,6 +227,7 @@ func TestEventBus_RemoveWatcher(t *testing.T) {
 			When("given watcher has already been removed").
 			Then("should succeed").
 			PreRun(func(t *testing.T, c *Context) {
+				createIdleSubscription(t, &c.EB, "foo")
 				w, err := c.EB.AddWatcher("foo")
 				if !assert.NoError(t, err) {
 					t.FailNow()
