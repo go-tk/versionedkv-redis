@@ -5,6 +5,7 @@ import (
 	"context"
 	"hash/fnv"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -91,8 +92,8 @@ func (rs *redisStorage) WaitForValue(ctx context.Context, key string, oldOpaqueV
 	return value, version2OpaqueVersion(newVersion), err
 }
 
-func (rs *redisStorage) doWaitForValue(ctx context.Context, key string, oldVersion int64) (string, int64, error) {
-	const script = `local valuesKey = KEYS[1]
+var getValueScript *redis.Script = redis.NewScript(`
+local valuesKey = KEYS[1]
 local versionsKey = KEYS[2]
 local key = ARGV[1]
 local oldVersion = tonumber(ARGV[2])
@@ -108,16 +109,19 @@ local value = redis.call("HGET", valuesKey, key)
 if value == false then
 	value = ""
 end
-return {value, newVersion, 1}`
+return {value, newVersion, 1}
+`)
+
+func (rs *redisStorage) doWaitForValue(ctx context.Context, key string, oldVersion int64) (string, int64, error) {
 	shardIndex := rs.locateShard(key)
 	hashTag := rs.hashTag(shardIndex)
 	valuesKey := rs.valuesKey(hashTag)
 	versionsKey := rs.versionsKey(hashTag)
-	scriptKeys := []string{
+	keys := []string{
 		valuesKey,
 		versionsKey,
 	}
-	scriptArgv := []interface{}{
+	argv := []interface{}{
 		key,
 		oldVersion,
 	}
@@ -136,7 +140,7 @@ return {value, newVersion, 1}`
 					rs.eventBus.RemoveWatcher(key, watcher)
 				}
 			}()
-			result, err := rs.client.Eval(ctx, script, scriptKeys, scriptArgv...).Result()
+			result, err := rs.runScript(ctx, getValueScript, keys, argv)
 			if err != nil {
 				return "", 0, err
 			}
@@ -174,11 +178,8 @@ func (rs *redisStorage) CreateValue(ctx context.Context, key string, value strin
 	return version2OpaqueVersion(version), err
 }
 
-func (rs *redisStorage) doCreateValue(ctx context.Context, key string, value string) (int64, error) {
-	if rs.eventBus.IsClosed() {
-		return 0, versionedkv.ErrStorageClosed
-	}
-	const script = `local valuesKey = KEYS[1]
+var createValueScript *redis.Script = redis.NewScript(`
+local valuesKey = KEYS[1]
 local versionsKey = KEYS[2]
 local versionHighKey = KEYS[3]
 local key = ARGV[1]
@@ -193,25 +194,31 @@ redis.call("HSET", valuesKey, key, value)
 local version = redis.call("INCR", versionHighKey) * numberOfShards + shardIndex
 redis.call("HSET", versionsKey, key, tostring(version))
 redis.call("PUBLISH", channelNamePrefix .. key, "")
-return version`
+return version
+`)
+
+func (rs *redisStorage) doCreateValue(ctx context.Context, key string, value string) (int64, error) {
+	if rs.eventBus.IsClosed() {
+		return 0, versionedkv.ErrStorageClosed
+	}
 	shardIndex := rs.locateShard(key)
 	hashTag := rs.hashTag(shardIndex)
 	valuesKey := rs.valuesKey(hashTag)
 	versionsKey := rs.versionsKey(hashTag)
 	versionHighKey := rs.versionHighKey(hashTag)
-	scriptKeys := []string{
+	keys := []string{
 		valuesKey,
 		versionsKey,
 		versionHighKey,
 	}
-	scriptArgv := []interface{}{
+	argv := []interface{}{
 		key,
 		value,
 		shardIndex,
 		rs.options.NumberOfShards,
 		rs.eventBus.ChannelNamePrefix(),
 	}
-	result, err := rs.client.Eval(ctx, script, scriptKeys, scriptArgv...).Result()
+	result, err := rs.runScript(ctx, createValueScript, keys, argv)
 	if err != nil {
 		return 0, err
 	}
@@ -224,11 +231,8 @@ func (rs *redisStorage) UpdateValue(ctx context.Context, key, value string, oldO
 	return version2OpaqueVersion(newVersion), err
 }
 
-func (rs *redisStorage) doUpdateValue(ctx context.Context, key, value string, oldVersion int64) (int64, error) {
-	if rs.eventBus.IsClosed() {
-		return 0, versionedkv.ErrStorageClosed
-	}
-	const script = `local valuesKey = KEYS[1]
+var updateValueScript *redis.Script = redis.NewScript(`
+local valuesKey = KEYS[1]
 local versionsKey = KEYS[2]
 local versionHighKey = KEYS[3]
 local key = ARGV[1]
@@ -248,18 +252,24 @@ redis.call("HSET", valuesKey, key, value)
 local newVersion = redis.call("INCR", versionHighKey) * numberOfShards + shardIndex
 redis.call("HSET", versionsKey, key, tostring(newVersion))
 redis.call("PUBLISH", channelNamePrefix .. key, "")
-return newVersion`
+return newVersion
+`)
+
+func (rs *redisStorage) doUpdateValue(ctx context.Context, key, value string, oldVersion int64) (int64, error) {
+	if rs.eventBus.IsClosed() {
+		return 0, versionedkv.ErrStorageClosed
+	}
 	shardIndex := rs.locateShard(key)
 	hashTag := rs.hashTag(shardIndex)
 	valuesKey := rs.valuesKey(hashTag)
 	versionsKey := rs.versionsKey(hashTag)
 	versionHighKey := rs.versionHighKey(hashTag)
-	scriptKeys := []string{
+	keys := []string{
 		valuesKey,
 		versionsKey,
 		versionHighKey,
 	}
-	scriptArgv := []interface{}{
+	argv := []interface{}{
 		key,
 		value,
 		oldVersion,
@@ -267,7 +277,7 @@ return newVersion`
 		rs.options.NumberOfShards,
 		rs.eventBus.ChannelNamePrefix(),
 	}
-	result, err := rs.client.Eval(ctx, script, scriptKeys, scriptArgv...).Result()
+	result, err := rs.runScript(ctx, updateValueScript, keys, argv)
 	if err != nil {
 		return 0, err
 	}
@@ -280,11 +290,8 @@ func (rs *redisStorage) CreateOrUpdateValue(ctx context.Context, key, value stri
 	return version2OpaqueVersion(newVersion), err
 }
 
-func (rs *redisStorage) doCreateOrUpdateValue(ctx context.Context, key, value string, oldVersion int64) (int64, error) {
-	if rs.eventBus.IsClosed() {
-		return 0, versionedkv.ErrStorageClosed
-	}
-	const script = `local valuesKey = KEYS[1]
+var createOrUpdateValueScript *redis.Script = redis.NewScript(`
+local valuesKey = KEYS[1]
 local versionsKey = KEYS[2]
 local versionHighKey = KEYS[3]
 local key = ARGV[1]
@@ -308,18 +315,24 @@ redis.call("HSET", valuesKey, key, value)
 local newVersion = redis.call("INCR", versionHighKey) * numberOfShards + shardIndex
 redis.call("HSET", versionsKey, key, tostring(newVersion))
 redis.call("PUBLISH", channelNamePrefix .. key, "")
-return newVersion`
+return newVersion
+`)
+
+func (rs *redisStorage) doCreateOrUpdateValue(ctx context.Context, key, value string, oldVersion int64) (int64, error) {
+	if rs.eventBus.IsClosed() {
+		return 0, versionedkv.ErrStorageClosed
+	}
 	shardIndex := rs.locateShard(key)
 	hashTag := rs.hashTag(shardIndex)
 	valuesKey := rs.valuesKey(hashTag)
 	versionsKey := rs.versionsKey(hashTag)
 	versionHighKey := rs.versionHighKey(hashTag)
-	scriptKeys := []string{
+	keys := []string{
 		valuesKey,
 		versionsKey,
 		versionHighKey,
 	}
-	scriptArgv := []interface{}{
+	argv := []interface{}{
 		key,
 		value,
 		oldVersion,
@@ -327,7 +340,7 @@ return newVersion`
 		rs.options.NumberOfShards,
 		rs.eventBus.ChannelNamePrefix(),
 	}
-	result, err := rs.client.Eval(ctx, script, scriptKeys, scriptArgv...).Result()
+	result, err := rs.runScript(ctx, createOrUpdateValueScript, keys, argv)
 	if err != nil {
 		return 0, err
 	}
@@ -339,11 +352,8 @@ func (rs *redisStorage) DeleteValue(ctx context.Context, key string, opaqueVersi
 	return rs.doDeleteValue(ctx, key, opaqueVersion2Version(opaqueVersion))
 }
 
-func (rs *redisStorage) doDeleteValue(ctx context.Context, key string, version int64) (bool, error) {
-	if rs.eventBus.IsClosed() {
-		return false, versionedkv.ErrStorageClosed
-	}
-	const script = `local valuesKey = KEYS[1]
+var deleteValueScript *redis.Script = redis.NewScript(`
+local valuesKey = KEYS[1]
 local versionsKey = KEYS[2]
 local key = ARGV[1]
 local version = tonumber(ARGV[2])
@@ -358,21 +368,27 @@ end
 redis.call("HDEL", valuesKey, key)
 redis.call("HDEL", versionsKey, key)
 redis.call("PUBLISH", channelNamePrefix .. key, "")
-return 1`
+return 1
+`)
+
+func (rs *redisStorage) doDeleteValue(ctx context.Context, key string, version int64) (bool, error) {
+	if rs.eventBus.IsClosed() {
+		return false, versionedkv.ErrStorageClosed
+	}
 	shardIndex := rs.locateShard(key)
 	hashTag := rs.hashTag(shardIndex)
 	valuesKey := rs.valuesKey(hashTag)
 	versionsKey := rs.versionsKey(hashTag)
-	scriptKeys := []string{
+	keys := []string{
 		valuesKey,
 		versionsKey,
 	}
-	scriptArgv := []interface{}{
+	argv := []interface{}{
 		key,
 		version,
 		rs.eventBus.ChannelNamePrefix(),
 	}
-	result, err := rs.client.Eval(ctx, script, scriptKeys, scriptArgv...).Result()
+	result, err := rs.runScript(ctx, deleteValueScript, keys, argv)
 	if err != nil {
 		return false, err
 	}
@@ -459,6 +475,19 @@ func (rs *redisStorage) versionsKey(hashTag string) string {
 
 func (rs *redisStorage) versionHighKey(hashTag string) string {
 	return rs.options.KeyPrefix + "{" + hashTag + "}:versionhigh"
+}
+
+func (rs *redisStorage) runScript(ctx context.Context, script *redis.Script, keys []string, argv []interface{}) (interface{}, error) {
+	for {
+		result, err := script.EvalSha(ctx, rs.client, keys, argv...).Result()
+		if err != nil && strings.HasPrefix(err.Error(), "NOSCRIPT ") {
+			if err := script.Load(ctx, rs.client).Err(); err != nil {
+				return nil, err
+			}
+			continue
+		}
+		return result, err
+	}
 }
 
 func version2OpaqueVersion(version int64) versionedkv.Version {
