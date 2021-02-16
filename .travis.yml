@@ -14,6 +14,7 @@ script:
   - >-
     make all
     USE_DOCKER=1
+    ALPINE_PACKAGES=git
     POST_GENERATE='git diff --exit-code'
     POST_FMT='git diff --exit-code'
     GO_TEST_FLAGS='-race -coverprofile=coverage.txt'
