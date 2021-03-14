@@ -140,11 +140,11 @@ func (rs *redisStorage) doWaitForValue(ctx context.Context, key string, oldVersi
 					rs.eventBus.RemoveWatcher(key, watcher)
 				}
 			}()
-			result, err := rs.runScript(ctx, getValueScript, keys, argv)
+			ret, err := rs.runScript(ctx, getValueScript, keys, argv)
 			if err != nil {
 				return "", 0, err
 			}
-			results := result.([]interface{})
+			results := ret.([]interface{})
 			ok := results[2].(int64) == 1
 			retry = !ok
 			if retry {
@@ -218,11 +218,11 @@ func (rs *redisStorage) doCreateValue(ctx context.Context, key string, value str
 		rs.options.NumberOfShards,
 		rs.eventBus.ChannelNamePrefix(),
 	}
-	result, err := rs.runScript(ctx, createValueScript, keys, argv)
+	ret, err := rs.runScript(ctx, createValueScript, keys, argv)
 	if err != nil {
 		return 0, err
 	}
-	version := result.(int64)
+	version := ret.(int64)
 	return version, nil
 }
 
@@ -277,11 +277,11 @@ func (rs *redisStorage) doUpdateValue(ctx context.Context, key, value string, ol
 		rs.options.NumberOfShards,
 		rs.eventBus.ChannelNamePrefix(),
 	}
-	result, err := rs.runScript(ctx, updateValueScript, keys, argv)
+	ret, err := rs.runScript(ctx, updateValueScript, keys, argv)
 	if err != nil {
 		return 0, err
 	}
-	newVersion := result.(int64)
+	newVersion := ret.(int64)
 	return newVersion, nil
 }
 
@@ -340,11 +340,11 @@ func (rs *redisStorage) doCreateOrUpdateValue(ctx context.Context, key, value st
 		rs.options.NumberOfShards,
 		rs.eventBus.ChannelNamePrefix(),
 	}
-	result, err := rs.runScript(ctx, createOrUpdateValueScript, keys, argv)
+	ret, err := rs.runScript(ctx, createOrUpdateValueScript, keys, argv)
 	if err != nil {
 		return 0, err
 	}
-	newVersion := result.(int64)
+	newVersion := ret.(int64)
 	return newVersion, nil
 }
 
@@ -388,11 +388,11 @@ func (rs *redisStorage) doDeleteValue(ctx context.Context, key string, version i
 		version,
 		rs.eventBus.ChannelNamePrefix(),
 	}
-	result, err := rs.runScript(ctx, deleteValueScript, keys, argv)
+	ret, err := rs.runScript(ctx, deleteValueScript, keys, argv)
 	if err != nil {
 		return false, err
 	}
-	ok := result.(int64) == 1
+	ok := ret.(int64) == 1
 	return ok, nil
 }
 
@@ -479,14 +479,14 @@ func (rs *redisStorage) versionHighKey(hashTag string) string {
 
 func (rs *redisStorage) runScript(ctx context.Context, script *redis.Script, keys []string, argv []interface{}) (interface{}, error) {
 	for {
-		result, err := script.EvalSha(ctx, rs.client, keys, argv...).Result()
+		ret, err := script.EvalSha(ctx, rs.client, keys, argv...).Result()
 		if err != nil && strings.HasPrefix(err.Error(), "NOSCRIPT ") {
 			if err := script.Load(ctx, rs.client).Err(); err != nil {
 				return nil, err
 			}
 			continue
 		}
-		return result, err
+		return ret, err
 	}
 }
 
